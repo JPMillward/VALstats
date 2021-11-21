@@ -9,6 +9,7 @@ Constants for human readability
 """
 
 player_rank = {
+        0:'Unranked', 
         3:'Iron I',
         4:'Iron II',
         5:'Iron III',
