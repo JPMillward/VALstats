@@ -39,45 +39,79 @@ class TableMaker():
     def __init__(self, dictionary):
         print('init')
         self.json = dictionary
+        self.all_keys = []
+        self.dict_keys = []
+        self.list_keys = []
+        self.json_nav = {}
         self.dataframes = {}
+        
         self.scan_fields(self.json)
         #print(self.json)
         
-    def scan_list(self, input_list):
+    def scan_list(self, input_list, key = None):
         if len(input_list) == 0: return print("Empty List")
+        
         if isinstance(input_list[0], dict):
              if not self.validate_series(input_list): return print("Something Went Wrong")
-             self.scan_dict(input_list[0])
+             print('Found valid list of dictionaries')
+             self.dict_keys.append(key)
+             self.dataframes.update({key:input_list})
+             self.scan_dict(input_list[0], key)
+        
         elif isinstance(input_list[0], list):
+            self.list_keys.append(key)
             self.scan_list(input_list)
+        
         else:
             print(input_list)
     
     
-    def scan_dict(self, input_dictionary):
+    def scan_dict(self, input_dictionary, dict_key = None):
         if len(input_dictionary) == 0: return print('Empty Dictionary')
         for key,value in input_dictionary.items():
+            self.all_keys.append(key)
+            self.json_nav[dict_key].append(key)
             if isinstance(value, dict):
                 print(f'{key} returns a dictionary. Further delving necessary.')
-                self.scan_dict(value)
+                self.dict_keys.append(key)
+                self.json_nav.update({key:[]})
+                self.scan_dict(value, key)
+            
             elif isinstance(value, list):
                 print(f'{key} returns a list. Further delving necessary.')
-                self.scan_list(value)
+                self.json_nav.update({key:[]})
+                self.list_keys.append(key)
+                self.scan_list(value,key)
+            
             else:
                 print(f'{key} : {value}')
+
+                
         
     def scan_fields(self, input_input):
         if len(input_input) == 0: return
         for key,value in input_input.items(): 
+            self.all_keys.append(key)
             if isinstance(value, list):
-               self.scan_list(value)
+                self.json_nav.update({key : []})
+                self.scan_list(value, key)
                 
             elif isinstance(value, dict):
                 print(f'{key} returns a dictionary. Further delving necessary.')
-                self.scan_dict(value)
+                self.json_nav.update({key : []})
+                self.scan_dict(value, key)
 
             else: None
         print('Done')
+        #print(self.list_keys)
+        #for x in self.list_keys:
+        #    print(self.dataframes[x])
+        print(self.dict_keys)
+        print(self.list_keys)
+        for key, value in self.json_nav.items():
+            print(f'{key} : {value}')
+        print(self.all_keys)
+            
         
     def validate_series(self, input_list):
         for x in range(len(input_list)):
