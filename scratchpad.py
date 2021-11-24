@@ -28,4 +28,6 @@ search_param = 'competitive'
 r = requests.get( env.match_by_queue + search_param, headers = { env.api_header : env.match_key })
 json = r.json()
 
-print(sys.version)
+with open('compmatchids', 'a') as file:
+    for item in json['matchIds']:
+        file.write(item + '\n')
