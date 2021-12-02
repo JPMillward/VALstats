@@ -16,10 +16,8 @@ import requests
 import personal as env
 import constants as c
 
-search_param = '379a1d35-1d93-4aee-bd77-918fa97a2d80'
+search_param = '1054b5b9-9eab-4322-9ff0-86df58239b8c'
 r = requests.get( env.match_by_id + search_param, headers = { env.api_header : env.match_key })
-
-
 
 class IHateJson():
     
@@ -32,8 +30,6 @@ class IHateJson():
         
         self.scan_fields(self.json)
         print(self.json_nav)
-        print(self.root)
-        
     def scan_list(self, input_list, arg_key):
         if len(input_list) == 0: return print("Empty List: {input_list}")
         self.depth += 1
@@ -96,7 +92,7 @@ class IHateJson():
                 self.root.update( { key:self.depth} )
                 self.scan_dict(value, key)
 
-        self.print_tree(self.json_nav)
+        #self.print_tree(self.json_nav)
         print('Done')
     
         
@@ -139,31 +135,8 @@ class IHateJson():
         return False
         
         
-IHateJson(r.json())
-#print(rounds[0].keys())
-
-#df =  pd.DataFrame(rounds)
-#print(df.keys())
-
-"""
-for round in range(len(rounds)):
-    for pair in rounds[round].items():
-        if isinstance(pair[1], dict):
-            print(f'{pair}: \n')
-            print(pair[1].items())
-        else: print(pair)
-"""
-'''
-MATCH API NAVIGATION
-
--matchinfo
--players
--coaches
--teams                
--roundResults
-
-'''
-
-
-
-# 379a1d35-1d93-4aee-bd77-918fa97a2d80
+#IHateJson(r.json())
+#for x in range(len(r.json()['roundResults'])):
+ #   economy = r.json()['roundResults'][x]
+  #          df = pd.Series(economy)
+    #print(df)

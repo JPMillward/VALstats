@@ -48,7 +48,20 @@ agent_name = {
     "569fdd95-4d10-43ab-ca70-79becc718b46": "Sage",
     "a3bfb853-43b2-7238-a4f1-ad90e9e46bcc": "Reyna",
     "8e253930-4c05-31dd-1b6c-968525494517": "Omen",
-    "add6443a-41bd-e414-f6ad-e58d267f4e95": "Jett"
+    "add6443a-41bd-e414-f6ad-e58d267f4e95": "Jett",
+    "22697a3d-45bf-8dd7-4fec-84a9e28c69d7": "Chamber",
+    "41fb69c1-4189-7b37-f117-bcaf1e96f1bf": "Astra"
+    }
+
+map_id = {
+    '/Game/Maps/Ascent/Ascent' : 'Ascent',
+    '/Game/Maps/Bonsai/Bonsai' : 'Split',
+    '/Game/Maps/Duality/Duality' : 'Bind',
+    '/Game/Maps/Poveglia/Range' : 'Practice Range',
+    '/Game/Maps/Triad/Triad' : 'Haven',
+    '/Game/Maps/Foxtrot/Foxtrot' : 'Breeze',
+    '/Game/Maps/Canyon/Canyon' : 'Fracture',
+    '/Game/Maps/Port/Port' : 'Icebox',
     }
 
 map_name = {
@@ -81,7 +94,9 @@ equipment_name = {
     "4ade7faa-4cf1-8376-95ef-39884480959b": "Guardian",
     "c4883e50-4494-202c-3ec3-6b8a9284f00b": "Marshal",
     "462080d1-4035-2937-7c09-27aa2a5c27a7": "Spectre",
-    "f7e1b454-4ad4-1063-ec0a-159e56b58941": "Stinger"
+    "f7e1b454-4ad4-1063-ec0a-159e56b58941": "Stinger",
+    "4DEC83D5-4902-9AB3-BED6-A7A390761157": "Light Armor",
+    "822BCAB2-40A2-324E-C137-E09195AD7692": "Heavy Armor",
   }
 
 game_mode = {
