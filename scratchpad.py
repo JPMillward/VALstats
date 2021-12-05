@@ -12,9 +12,7 @@ THU NOTES:
     To do - finish constraint enforcement for database.
             craft class for reading data into said database.
             read in economy tables, constants table.
-            ensure constraints work.
-            begin automation of match data aggregation and storage.
-            pray.
+            ensure constraints w?|2 "
             
 
 """
@@ -23,13 +21,11 @@ import pandas as pd
 import requests
 import personal as env
 import constants as c
+from millsql import sql
 import sqlite3
 
-path = "/Users/johnm/Documents/learning mats/"
-file = "equipment_econ.xlsx"
-df = pd.read_excel(path + file)
-#print(df)
-
+get_table = sql.get_table('equipment_econ')
+print(get_table)
 
 search_param = '273a40d0-d087-423e-81b5-7c234895e9e5'
 r = requests.get( env.match_by_id + search_param, headers = { env.api_header : env.match_key })
@@ -44,7 +40,8 @@ print(round_result.keys())
 print(stats.keys())
 print(damage[0].keys())
 print(len(kills))
-
+print(json['matchInfo'].keys())
+'''
 for x in range(len(json['roundResults'])):
     round_num = json['roundResults'][x]
     print(f"---Round {x}---")
@@ -63,10 +60,12 @@ for x in range(len(json['roundResults'])):
         ability = player ['ability']
         #print(f"kills: {len(kills)}")
         #print(kills)
-        print(damage)
+        print(player)
 
 print (json['roundResults'][0].keys())
 print(json['roundResults'][0]['roundResultCode'])
+
+'''
 '''
 print(r.json()['teams'])    
 for x in range(len(r.json()['players'])):
@@ -95,8 +94,6 @@ for x in range(len(r.json()['roundResults'])):
         spent = player['economy']['spent']
         left = player['economy']['remaining']
         print(f'Player: {team} {pid} | Weapon: {weapon} | Armor: {armor} | Spent: {spent} | Left: {left}')
-
-'''
 '''
 match_id = json['matchInfo']['matchId']
 map_id = c.map_id[json['matchInfo']['mapId']]
@@ -109,4 +106,4 @@ print(json['matchInfo'].keys())
 ranked = json['matchInfo']['isRanked']
 season = json['matchInfo']['seasonId']
 print(f"{match_time_ms}, {match_id}, {map_id}, {queue_id}, {ranked}, \n {season}, Match Length: {match_length_ms}")
-'''
+

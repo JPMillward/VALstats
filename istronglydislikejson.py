@@ -26,6 +26,7 @@ class IHateJson():
         self.depth = 0
         self.json = dictionary
         self.json_nav = {}
+        self.depth_nav = {}
         self.root = {}
         
         self.scan_fields(self.json)
@@ -91,23 +92,9 @@ class IHateJson():
                 self.json_nav.update({key:{}})
                 self.root.update( { key:self.depth} )
                 self.scan_dict(value, key)
-
-        #self.print_tree(self.json_nav)
         print('Done')
     
-        
-    def print_tree(self, input_dict):
-        #print(f"!!!!!!validating!!!!!!\n {input_dict}")
-        for key, value in input_dict.items():
-            if key in self.root: 
-                print(f"-{key}")
-            else:
-                loop_counter = value
-                blank_space = ""
-                while loop_counter > 0:
-                    blank_space = blank_space + "   "
-                    loop_counter = loop_counter - 1
-                print(f'{blank_space}-{key}')
+
         
     def validate_series(self, input_list):
         for x in range(len(input_list)):
@@ -135,7 +122,7 @@ class IHateJson():
         return False
         
         
-#IHateJson(r.json())
+IHateJson(r.json())
 #for x in range(len(r.json()['roundResults'])):
  #   economy = r.json()['roundResults'][x]
   #          df = pd.Series(economy)

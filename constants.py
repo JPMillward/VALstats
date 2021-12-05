@@ -7,6 +7,8 @@ Created on Sat Nov 20 18:26:31 2021
 
 Constants for human readability
 """
+import pandas as pd
+from millsql import sql
 
 player_rank = {
         0:'Unranked', 
@@ -50,7 +52,8 @@ agent_name = {
     "8e253930-4c05-31dd-1b6c-968525494517": "Omen",
     "add6443a-41bd-e414-f6ad-e58d267f4e95": "Jett",
     "22697a3d-45bf-8dd7-4fec-84a9e28c69d7": "Chamber",
-    "41fb69c1-4189-7b37-f117-bcaf1e96f1bf": "Astra"
+    "41fb69c1-4189-7b37-f117-bcaf1e96f1bf": "Astra",
+    "601dbbe7-43ce-be57-2a40-4abd24953621": "Kay / 0",
     }
 
 map_id = {
@@ -95,8 +98,8 @@ equipment_name = {
     "c4883e50-4494-202c-3ec3-6b8a9284f00b": "Marshal",
     "462080d1-4035-2937-7c09-27aa2a5c27a7": "Spectre",
     "f7e1b454-4ad4-1063-ec0a-159e56b58941": "Stinger",
-    "4DEC83D5-4902-9AB3-BED6-A7A390761157": "Light Armor",
-    "822BCAB2-40A2-324E-C137-E09195AD7692": "Heavy Armor",
+    "4dec83d5-4902-9ab3-bed6-a7a390761157": "Light Armor",
+    "822bcab2-40a2-324e-c137-e09195ad7692": "Heavy Armor",
   }
 
 game_mode = {
