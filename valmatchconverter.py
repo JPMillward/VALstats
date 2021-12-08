@@ -21,26 +21,20 @@ SUN NOTES:
     other questions?
     eventually refactor this monstrosity
 """
-import pandas as pd
 import requests
+import pandas as pd
 import personal as env
-import sqlite3
 
 
 class ValMatchConverter():
-    def __init__(self, json_response, region, database_connection):
-        self.dbc = database_connection
+    def __init__(self, json_response, region):
         self.region = region
         self.json = json_response
-        
+        self.valid = False
+        if isinstance(self.json['roundResults'], list):
+            self.valid=True
         self.match = self.json['matchInfo']['matchId']
-        #Determine whether or not to even process json
-
-        if not (self.verify_match_integrity()): 
-            return print(f"Error: Match: {self.match} contains no round results.\nExiting.")
-        
-        if (self.check_for_entry('matches', 'match_id', self.match)):
-            return print(f"Warning: Match: {self.match} is already in database.\nExiting.")
+        #Now assume match integrity based on the fact it got passed through successfully.
         
         self.matches = {}
         self.players = []
@@ -54,61 +48,30 @@ class ValMatchConverter():
         self.round_start_time = 0
         
         ### Run Formatting Functions
-        self.format_matches()
-        self.format_players()
-        self.format_match_stats()
-        self.format_rounds()
-        '''
-        print(pd.DataFrame(self.bomb_logs))
-        print(pd.DataFrame(self.round_stats))
+        if self.valid == True:
+            self.format_matches()
+            self.format_players()
+            self.format_match_stats()
+            self.format_rounds()
     
-        print(pd.DataFrame(self.damage_logs))
-        print(pd.DataFrame(self.match_logs))
-        print(self.bomb_logs)
-        
-        '''
-        #push to db
-        self.push_to_db()
-        return print(f"Succesfully pushed match: {self.match}")
-           
-    def verify_match_integrity(self):
-        if not isinstance(self.json['roundResults'], list):
-            return False
-        return True
-            
-        
-    def push_to_db(self):
-        ##Ensure we aren't entering a duplicate to prevent errors.
-        if self.check_for_entry(table='matches', key='match_id', value=self.match) == False:
-            pd.DataFrame([self.matches]).set_index('match_id').to_sql('matches', self.dbc, if_exists='append')
-            for item in self.players:
-                if self.check_for_entry(table='players', key='player_id', value=item['player_id']) == False:
-                    pd.DataFrame([item]).set_index('player_id').to_sql('players', self.dbc, if_exists='append')
-                else: print(f'Warning: player: {item["player_id"]} is already in the database, omitting.')
-
-            pd.DataFrame(self.match_stats).set_index(['match_id','player_id']).to_sql('match_stats', self.dbc, if_exists='append')
-            pd.DataFrame(self.rounds).set_index(['match_id', 'round']).to_sql('rounds', self.dbc, if_exists='append')
-            pd.DataFrame(self.round_stats).set_index(['match_id', 'round', 'player_id']).to_sql('round_stats', self.dbc, if_exists='append')
-            pd.DataFrame(self.match_logs).set_index(['match_id', 'player_id', 'match_time_ms']).to_sql('match_logs', self.dbc, if_exists='append')
-            pd.DataFrame(self.damage_logs).set_index(['match_id', 'round_id', 'player_id', 'target_id']).to_sql('damage_logs', self.dbc, if_exists='append')
-            pd.DataFrame(self.bomb_logs).set_index(['match_id', 'match_time_ms']).to_sql('bomb_logs', self.dbc, if_exists='append')
-
-        else: print(f'Warning: match: {self.match} is already in the database, omitting.')
-        return print(f"Pushed {self.match} to Database.")
-            
-    def check_for_entry(self, table, key, value):
-        does_exist = f"""SELECT EXISTS(SELECT 1 FROM {table} WHERE """
-        if (self.region == 'na' or self.region == 'br' or self.region == 'latam'):
-            deployment_check = f"""(region ='na' OR region='br' OR region='latam') AND {key}='{value}');"""
-        else:
-            deployment_check = f""" region ='{self.region}' AND {key}='{value}');"""
-            
-        query = int(pd.read_sql(does_exist + deployment_check, self.dbc).iloc[0])
-        
-        if query == 1: return True
-        if query == 0: return False
         return
+    
+    def get_converted(self):
+        if self.valid==False: return print("Error: Invalid Match File")
         
+        master_dictionary = {'matches' : self.matches,
+                             'players': self.players,
+                             'match_stats': self.match_stats,
+                             'rounds' : self.rounds,
+                             'round_stats' : self.round_stats,
+                             'kill_logs' : self.kill_logs,
+                             'bomb_logs' : self.bomb_logs,
+                             'match_logs' : self.match_logs,
+                             'damage_logs' : self.damage_logs,
+                            }
+        return master_dictionary
+          
+   
     def format_matches(self):
         match_info = self.json['matchInfo']
         map_id = match_info['mapId']
@@ -443,17 +406,14 @@ class ValMatchConverter():
                 round_table[target_map[target]].update(updated_damage_row)
                 duplicates.append(x)
             else: target_map.update({target : x})
+
+        #if len(duplicates) >= 1: print(duplicates)
         
+        #print(pd.DataFrame(round_table))
         for duplicate in range(len(duplicates)):
-            round_table.pop(duplicates[duplicate])
+            round_table.pop(duplicates[duplicate]-duplicate)
         
+        #print(pd.DataFrame(round_table))
         for row in round_table:
             self.damage_logs.append(row)
-            
-
-database_connection = sqlite3.connect(env.database_path)
-search_param = "4d129f28-19d3-417d-83f1-8bf679b2c754"
-
-r = requests.get(env.region_na + env.match_by_id + search_param, headers ={env.api_header : env.match_key})
-ValMatchConverter(r.json(), 'na', database_connection)   
-
+        return

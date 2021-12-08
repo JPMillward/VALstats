@@ -26,12 +26,10 @@ class ValAutoHandler():
     def get_chunk(self):
         chunk = self.match_list[:self.limit]
         return chunk
-        
-        
-        
+
     
     def calculate_sample_size(self, unique_entries, time_range, overlap = 0):
-        print("Do math to determine how many to add based on time elapse from last queue.")
+        #print("Do math to determine how many to add based on time elapse from last queue.")
         
         if time_range > 3600000:
             self.add_entries(unique_entries, priority = True)
@@ -42,7 +40,7 @@ class ValAutoHandler():
         entry_count = unique_entries.match_id.count()
         time_min = int(time_range * .001 / 60)
         max_sample_size = (time_min * self.limit)
-        print(max_sample_size)
+        #print(max_sample_size)
         
         if entry_count < max_sample_size:
             self.add_entries(unique_entries)

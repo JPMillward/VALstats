@@ -18,7 +18,8 @@ import sqlite3
 
 class ValStatsAggregator():
     
-    def __init__(self, query, region = None):
+    def __init__(self, query, region):
+        print('Inited')
         self.query = query
         self.region = region
         self.auto = ValAutoHandler()
@@ -30,6 +31,8 @@ class ValStatsAggregator():
         if self.valid == True:
             if self.query == 'auto': self.auto_handler()
             else: self.request_handler()
+        if self.valid == False:
+            print('Oops')
         return
     
     ### Currently overbuilt to take input requests it's never going to take. Then never implemented. Should be fine.
@@ -71,22 +74,79 @@ class ValStatsAggregator():
     
     def parse_out_file(self, input_type):
             if input_type == 'match':
-                self.out_location = env.database_path
+                self.out_location = sqlite3.connect(env.database_path)
             elif input_type == 'player':
                 self.out_location = env.database_directory + 'player_matches_' + self.region + '.csv'
             elif input_type == 'recent':
                 self.out_location = env.database_directory + 'recent_matches_' + self.region + '_' + self.query +'.csv'
-            print(self.out_location)
+            #print(self.out_location)
             return
     
     def auto_handler(self):
         chunk = self.auto.get_chunk()
-        for x in range(chunk.match_id.count()):
+        chunk_size = chunk.match_id.count()
+        commit_count = 0
+        dupe_count = 0
+        fail_count = 0
+        
+        for x in range(chunk_size):
+            search_parameter = chunk.iloc[x]['match_id']
             self.region = chunk.iloc[x]['region']
-            self.parse_region()
-            search_paramater = chunk.iloc[x]['match_id']
-            json = ValorantFetcher(self.api_end_point, self.api_region, search_paramater).attempt_query()
-            ValMatchConverter(json, self.region, sqlite3.connect(self.out_location))
+            
+            if self.check_entry('matches', 'match_id', search_parameter, self.region) == True:
+                dupe_count += 1
+            
+            else:
+                self.parse_region()
+                json = ValorantFetcher(self.api_end_point, self.api_region, search_parameter).attempt_query()
+                
+                if isinstance(json, dict):            
+                    new_dict = ValMatchConverter(json, self.region).get_converted()
+                    if isinstance(new_dict, dict):
+                        self.handle_database_output(new_dict)
+                        commit_count +=1
+                    else: fail_count +=1
+                else:
+                    fail_count += 1
+        self.auto.delete_entries()
+        return print(f"Matches Processed: {chunk_size}, Committed: {commit_count}, Duplicates: {dupe_count}, Errors: {fail_count}")
+        
+    def handle_database_output(self, dictionary):
+        #Assuming valid entry at this point
+        
+        for key,value in dictionary.items():
+            if (key == 'players'):
+                for player_entry in value:
+                    print(player_entry)
+                    print(self.check_entry(key, 'player_id', player_entry['player_id'], self.region))
+                    if (self.check_entry(key, 'player_id', player_entry['player_id'], self.region)):
+                        return print(f"{player_entry['player_id']} is already in database. Omitting.")
+                    else:
+                        pd.DataFrame([player_entry]).to_sql(key, self.out_location, if_exists='append', index=False)
+            
+            elif isinstance(value, dict):
+                data_frame = pd.DataFrame([value])
+            else:
+                data_frame = pd.DataFrame(value)
+            data_frame.to_sql(key, self.out_location, if_exists='append', index=False)
+            
+            return
+            
+    def check_entry(self, table, column, value, region):
+        if (region == 'na' or region == 'br' or region == 'latam'):
+            select_region = f"""(region='na' OR region='br' OR region='latam')"""
+        else:
+            select_region = f"""(region='{region}')"""
+        select_exists = f"""SELECT EXISTS(SELECT 1 FROM {table} WHERE ("""
+        select_column = f""" AND {column}='{value}'));"""
+        exist_query = select_exists+select_region+select_column
+        #print(select_exists + select_region + select_column)
+        data_frame = pd.read_sql(exist_query, self.out_location, index_col=None)
+        column = data_frame.columns[0]
+        if data_frame[column][0] == 0: return False
+        if data_frame[column][0] == 1: return True
+        return 
+        
         
         
     def request_handler(self):
@@ -97,16 +157,11 @@ class ValStatsAggregator():
         for match in json['matchIds']:
             data_frame_list.append( {'query_time': json['currentTime'], 'match_id' : match, 'region':self.region} )
         data_frame = pd.DataFrame(data_frame_list)
-        print(data_frame.iloc[0]['query_time'])
-        self.handle_output(data_frame)
-        
-        
-        #This can be called an unlimited 
-        
-        
+        #print(data_frame.iloc[0]['query_time'])
+        self.handle_recent_output(data_frame)        
         return        
 
-    def handle_output(self, data_frame):
+    def handle_recent_output(self, data_frame):
         if not if_exists(self.out_location):
             print(f'No file found at {self.out_location} to validate. Creating new file')
             data_frame.to_csv(self.out_location, mode='w', index=False)
@@ -146,9 +201,6 @@ class ValStatsAggregator():
         
         else:
             data_frame.to_csv(self.out_location, mode='a', index=False)
-            ValAutoHandler().calculate_sample_size(data_frame, time_range)
-            
-            return 
-ValStatsAggregator('auto', 'esports')
-
-
+            ValAutoHandler().calculate_sample_size(data_frame, time_range)         
+            return  
+ValStatsAggregator('auto', 'na')

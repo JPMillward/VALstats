@@ -13,7 +13,7 @@ import personal as env
 class ValorantFetcher():
 
     def __init__(self, api_end_point, region, search_parameter):
-        print(api_end_point, region, search_parameter)
+        print(region+api_end_point+search_parameter)
         self.search_param = search_parameter
         self.end_point = api_end_point
         self.region = region
@@ -23,12 +23,12 @@ class ValorantFetcher():
     def attempt_query(self):
         try:
            r = requests.get( self.region + self.end_point + self.search_param, headers = { env.api_header : env.match_key } )
-           if self.validate_response(r.response):
+           if self.validate_response(r.status_code):
                return r.json()
-           else return print(f"Error: {r.response}")
-        except: return print('Failed to successfully execute query. If this persists, fix it.\n Trying again in 15 minutes.')   
+           else: return r.status_code
+ 
+        except: return print('Failed to successfully execute query. Check network connection')   
     
     def validate_response(self, response):
-        print(response)
         if response == 200: return True
         else: return False

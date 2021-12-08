@@ -22,3 +22,8 @@ import personal as env
 from millsql import sql
 import sqlite3
 
+
+#Reformat weird csv issue.
+#csv = pd.read_csv(env.aggregation_queue)
+#print(csv)
+#csv.drop(columns='Unnamed: 0').to_csv(env.aggregation_queue, index=False)
