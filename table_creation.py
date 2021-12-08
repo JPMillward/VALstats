@@ -22,6 +22,7 @@ constants = """CREATE TABLE constants (
 #Master table for refering to match info
 matches = """CREATE TABLE matches (
           match_id TEXT NOT NULL,
+          region TEXT NOT NULL,
           map_id TEXT NOT NULL,
           game_length_ms INT NOT NULL,
           game_start_ms INT NOT NULL,
@@ -32,16 +33,18 @@ matches = """CREATE TABLE matches (
           winner TEXT,
           final_score TEXT,
           
-          PRIMARY KEY(match_id)
+          PRIMARY KEY(match_id, region)
         );"""
 
 #Master table for player info
 players = """CREATE TABLE players (
             player_id TEXT NOT NULL,
+            region TEXT NOT NULL,
             game_name TEXT NOT NULL,
             tag TEXT NOT NULL,
             
-            PRIMARY KEY (player_id)
+            FOREIGN KEY (region) references matches(region),
+            PRIMARY KEY (player_id, region)
                 
             );"""
 
@@ -115,7 +118,7 @@ match_logs = """CREATE TABLE match_logs(
             round_time_ms INT NOT NULL,
             event TEXT NOT NULL,
             player_location BLOB NOT NULL,
-            view REAL NOT NULL,
+            view REAL,
             target_id TEXT NOT NULL,
             target_location BLOB NOT NULL,
             FOREIGN KEY(match_id, round) REFERENCES rounds(match_id, round),
@@ -133,12 +136,24 @@ damage_logs = """CREATE TABLE damage_logs (
                 head_hits INT,
                 body_hits INT,
                 leg_hits INT,
-                kill TEXT,
-                weapon TEXT,
-                alt_fire TEXT,
                 FOREIGN KEY (match_id, round_id) REFERENCES rounds(match_id, round)
                 FOREIGN KEY (player_id, target_id) REFERENCES players(player_id, player_id)
                 PRIMARY KEY(match_id, round_id, player_id, target_id)
+                );"""
+
+kill_logs = """CREATE TABLE kill_logs (
+                match_id TEXT NOT NULL,
+                round TEXT NOT NULL,
+                match_time_ms INT NOT NULL,
+                round_time_ms INT NOT NULL,
+                player_id TEXT NOT NULL,
+                target_id TEXT NOT NULL,
+                damage_type TEXT,
+                damage_item TEXT NOT NULL,
+                alt_fire TEXT,
+                FOREIGN KEY (match_id, round) REFERENCES rounds(match_id, round)
+                FOREIGN KEY (player_id, target_id) REFERENCES players(player_id, player_id)
+                PRIMARY KEY (match_id, match_time_ms, player_id, target_id)
                 );"""
 
 #Table for tracking bomb-specific data
@@ -197,7 +212,7 @@ def add_tables():
     return
 
 
-#reset_tables()
-#add_tables()
+reset_tables()
+add_tables()
 
 
