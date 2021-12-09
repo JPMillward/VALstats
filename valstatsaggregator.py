@@ -152,13 +152,14 @@ class ValStatsAggregator():
     def request_handler(self):
         json = ValorantFetcher(self.api_end_point, self.api_region, self.query).attempt_query()
         if not isinstance(json, dict): return json
-        
+        print(json)
         data_frame_list = []
         for match in json['matchIds']:
             data_frame_list.append( {'query_time': json['currentTime'], 'match_id' : match, 'region':self.region} )
         data_frame = pd.DataFrame(data_frame_list)
-        #print(data_frame.iloc[0]['query_time'])
-        self.handle_recent_output(data_frame)        
+        if len(data_frame) > 0:
+            self.handle_recent_output(data_frame)
+        else: print(f"Query for {self.region} {self.query}, made at {json['currentTime']} returned no matches. Exiting.")
         return        
 
     def handle_recent_output(self, data_frame):
@@ -174,9 +175,8 @@ class ValStatsAggregator():
             time_range = 43200000
             
         saved_list = pd.read_csv(self.out_location)
-        print(saved_list['query_time'][0], saved_list['query_time'].iloc[-1])
-        #print(f"Last query was {saved_list.iloc[-1]['query_time']}, current query time is {data_frame.iloc[0]['query_time']}")
-        
+        print(saved_list.query_time.count())
+        print(data_frame)
         if saved_list.iloc[-1]['query_time'] > data_frame.iloc[0]['query_time'] - time_range :
             merged_data = saved_list.merge(data_frame, how='outer')
             removed_duplicates = merged_data.drop_duplicates(['match_id'])
@@ -202,5 +202,7 @@ class ValStatsAggregator():
         else:
             data_frame.to_csv(self.out_location, mode='a', index=False)
             ValAutoHandler().calculate_sample_size(data_frame, time_range)         
-            return  
-ValStatsAggregator('auto', 'na')
+            return
+        
+        
+ValStatsAggregator(sys.argv[1], sys.argv[2])

@@ -21,6 +21,8 @@ import requests
 import personal as env
 from millsql import sql
 import sqlite3
+import sys
+
 
 
 #Reformat weird csv issue.

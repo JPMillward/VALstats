@@ -153,8 +153,10 @@ class ValMatchConverter():
                     ultimate_casts = ability['ultimateCasts']
                     
                 else:
-                    print(f"Error: {player['gameName']} has no ability use response. \nPlease verify match integrity.\nTerminating Program.")
-                    exit()
+                    print(f"Error: {player['gameName']} has no ability use response. \nPlease verify match integrity.")
+                    print(f"No logging for this. Build it if you see this message too many times.")
+                    self.valid = False
+                   
                     return
                 
             
