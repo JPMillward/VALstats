@@ -30,6 +30,7 @@ class ValMatchConverter():
     def __init__(self, json_response, region):
         self.region = region
         self.json = json_response
+        
         self.valid = False
         if isinstance(self.json['roundResults'], list):
             self.valid=True
@@ -46,14 +47,14 @@ class ValMatchConverter():
         self.match_logs = []
         self.damage_logs = []
         self.round_start_time = 0
-        
+    
+  #  def run_conversion(self):
         ### Run Formatting Functions
         if self.valid == True:
             self.format_matches()
             self.format_players()
             self.format_match_stats()
             self.format_rounds()
-    
         return
     
     def get_converted(self):
@@ -419,3 +420,4 @@ class ValMatchConverter():
         for row in round_table:
             self.damage_logs.append(row)
         return
+    

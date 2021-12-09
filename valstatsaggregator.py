@@ -15,11 +15,12 @@ from valorantrequestfetcher import ValorantFetcher
 from valmatchconverter import ValMatchConverter
 import personal as env
 import sqlite3
+from millsql import MillSql
 
 class ValStatsAggregator():
     
     def __init__(self, query, region):
-        print('Inited')
+        print(f'Running ValStatsAggregator for {query}, {region}')
         self.query = query
         self.region = region
         self.auto = ValAutoHandler()
@@ -74,7 +75,7 @@ class ValStatsAggregator():
     
     def parse_out_file(self, input_type):
             if input_type == 'match':
-                self.out_location = sqlite3.connect(env.database_path)
+                self.out_location = MillSql(sqlite3.connect(env.database_path)).dbc
             elif input_type == 'player':
                 self.out_location = env.database_directory + 'player_matches_' + self.region + '.csv'
             elif input_type == 'recent':
@@ -99,12 +100,14 @@ class ValStatsAggregator():
             else:
                 self.parse_region()
                 json = ValorantFetcher(self.api_end_point, self.api_region, search_parameter).attempt_query()
-                
-                if isinstance(json, dict):            
+                #print(json.keys())
+                if isinstance(json, dict):
+                    
                     new_dict = ValMatchConverter(json, self.region).get_converted()
                     if isinstance(new_dict, dict):
                         self.handle_database_output(new_dict)
                         commit_count +=1
+                    
                     else: fail_count +=1
                 else:
                     fail_count += 1
@@ -113,24 +116,31 @@ class ValStatsAggregator():
         
     def handle_database_output(self, dictionary):
         #Assuming valid entry at this point
-        
+        #print(dictionary.keys())
         for key,value in dictionary.items():
+            
             if (key == 'players'):
                 for player_entry in value:
-                    print(player_entry)
-                    print(self.check_entry(key, 'player_id', player_entry['player_id'], self.region))
+                    #print(self.check_entry(key, 'player_id', player_entry['player_id'], self.region))
                     if (self.check_entry(key, 'player_id', player_entry['player_id'], self.region)):
-                        return print(f"{player_entry['player_id']} is already in database. Omitting.")
+                        print(f"{player_entry['player_id']} is already in database. Omitting.")
                     else:
-                        pd.DataFrame([player_entry]).to_sql(key, self.out_location, if_exists='append', index=False)
-            
+                        
+                        x = pd.DataFrame([player_entry])
+                        x.to_sql(key, self.out_location, if_exists='append', index=False)
+                        
             elif isinstance(value, dict):
                 data_frame = pd.DataFrame([value])
-            else:
+                data_frame.to_sql(key, self.out_location, if_exists='append', index=False)
+
+            elif isinstance(value, list):
                 data_frame = pd.DataFrame(value)
-            data_frame.to_sql(key, self.out_location, if_exists='append', index=False)
-            
-            return
+                data_frame.to_sql(key, self.out_location, if_exists='append', index=False)
+
+            else:
+                print('Invalid entry')
+                        
+        return
             
     def check_entry(self, table, column, value, region):
         if (region == 'na' or region == 'br' or region == 'latam'):
@@ -152,7 +162,7 @@ class ValStatsAggregator():
     def request_handler(self):
         json = ValorantFetcher(self.api_end_point, self.api_region, self.query).attempt_query()
         if not isinstance(json, dict): return json
-        print(json)
+        
         data_frame_list = []
         for match in json['matchIds']:
             data_frame_list.append( {'query_time': json['currentTime'], 'match_id' : match, 'region':self.region} )
@@ -205,4 +215,4 @@ class ValStatsAggregator():
             return
         
         
-ValStatsAggregator(sys.argv[1], sys.argv[2])
+ValStatsAggregator('auto', 'na')

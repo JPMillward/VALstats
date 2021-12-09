@@ -68,5 +68,5 @@ class ValAutoHandler():
     
     def delete_entries(self):
         self.match_list = self.match_list[self.limit:]        
-        self.match_list.to_csv(self.target)
+        self.match_list.to_csv(self.target, index=False)
         return

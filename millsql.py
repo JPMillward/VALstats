@@ -8,9 +8,6 @@ Helper class for manipulating and querying SQL
 
 import pandas as pd
 import sqlite3
-from personal import database_path
-database_connection = sqlite3.connect(database_path)
-
 
 class MillSql():
     
@@ -27,7 +24,7 @@ class MillSql():
         for table in valid_tables:
             dictionary = {table:self.list_columns(table)}
             self.valid_queries.update(dictionary)
-        print(self.valid_queries)
+        #print(self.valid_queries)
             
 
     def list_tables(self):
@@ -169,20 +166,19 @@ class MillSql():
     
     def drop_column(self, table_name, column_name):
         if not self.validate_input(table_name, column_name): return print(f"Error: Invalid query. Cannot drop {column_name} from {table_name}")
-        new_table = sql.get_table(table_name).drop(columns=column_name)
-        sql.drop_table(table_name)
-        sql.insert_table(table_name, new_table)
+        new_table = self.get_table(table_name).drop(columns=column_name)
+        self.drop_table(table_name)
+        self.insert_table(table_name, new_table)
         self.generate_query_whitelist()
         print(f"***Dropped {column_name} from {table_name}")
-        return sql.get_table(table_name)
+        return self.get_table(table_name)
     
     def does_exist(self, input_text, table = 'words', column = 'word'):
-        check_exist = sql.search_db(table = table, column = column, match = input_text, return_column = 'word', discrete = True)
+        check_exist = self.search_db(table = table, column = column, match = input_text, return_column = 'word', discrete = True)
         if str(check_exist) == input_text:
             print(f"{str(check_exist)} || {input_text}")
             return True  
         return False
     
-sql = MillSql(database_connection)
 #print(sql.valid_queries)
 #print(sql.get_table('symbol_table'))

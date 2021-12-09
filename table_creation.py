@@ -11,7 +11,9 @@ Also I'm tired of typing them line by line into console.
 
 """
 
-from millsql import sql
+import sqlite3
+import personal as env
+from millsql import MillSql
 import pandas as pd
 
 constants = """CREATE TABLE constants (
@@ -33,7 +35,7 @@ matches = """CREATE TABLE matches (
           winner TEXT,
           final_score TEXT,
           
-          PRIMARY KEY(match_id, region)
+          PRIMARY KEY(match_id)
         );"""
 
 #Master table for player info
@@ -43,8 +45,7 @@ players = """CREATE TABLE players (
             game_name TEXT NOT NULL,
             tag TEXT NOT NULL,
             
-            FOREIGN KEY (region) references matches(region),
-            PRIMARY KEY (player_id, region)
+            PRIMARY KEY (player_id)
                 
             );"""
 
@@ -68,7 +69,7 @@ match_stats = """CREATE TABLE match_stats (
                 ability_casts INT NOT NULL,
                 signature_casts INT NOT NULL,
                 ultimate_casts INT NOT NULL,
-                FOREIGN KEY (character_id, player_card) REFERENCES constants(unique_id, unique_id)
+                FOREIGN KEY (character_id) REFERENCES constants(unique_id)
                 FOREIGN KEY(match_id) REFERENCES matches(match_id),
                 FOREIGN KEY(player_id) REFERENCES players(player_id),
                 PRIMARY KEY(match_id, player_id)
@@ -102,8 +103,7 @@ round_stats = """CREATE TABLE round_stats (
                 spent INT NOT NULL,
                 remaining INT NOT NULL,
                 
-                FOREIGN KEY(match_id) REFERENCES matches(match_id),
-                FOREIGN KEY(round) REFERENCES rounds(round),
+                FOREIGN KEY(match_id, round) REFERENCES rounds(match_id, round),
                 FOREIGN KEY(player_id) REFERENCES players(player_id)
                 PRIMARY KEY (match_id, player_id, round)
                 
@@ -137,7 +137,8 @@ damage_logs = """CREATE TABLE damage_logs (
                 body_hits INT,
                 leg_hits INT,
                 FOREIGN KEY (match_id, round_id) REFERENCES rounds(match_id, round)
-                FOREIGN KEY (player_id, target_id) REFERENCES players(player_id, player_id)
+                FOREIGN KEY (player_id) REFERENCES players(player_id)
+                FOREIGN KEY (target_id) REFERENCES players(player_id)
                 PRIMARY KEY(match_id, round_id, player_id, target_id)
                 );"""
 
@@ -152,12 +153,13 @@ kill_logs = """CREATE TABLE kill_logs (
                 damage_item TEXT NOT NULL,
                 alt_fire TEXT,
                 FOREIGN KEY (match_id, round) REFERENCES rounds(match_id, round)
-                FOREIGN KEY (player_id, target_id) REFERENCES players(player_id, player_id)
+                FOREIGN KEY (player_id) REFERENCES players(player_id)
+                FOREIGN KEY (target_id) REFERENCES players(player_id)
                 PRIMARY KEY (match_id, match_time_ms, player_id, target_id)
                 );"""
 
 #Table for tracking bomb-specific data
-bomb_events = """CREATE TABLE bomb_logs (
+bomb_logs = """CREATE TABLE bomb_logs (
                 match_id TEXT NOT NULL,
                 round INT NOT NULL,
                 match_time_ms INT NOT NULL,
@@ -165,7 +167,7 @@ bomb_events = """CREATE TABLE bomb_logs (
                 event TEXT NOT NULL,
                 location BLOB NOT NULL,
                 bomb_site TEXT NOT NULL,
-                FOREIGN KEY (match_id, match_time_ms, round) REFERENCES match_logs(match_id, match_time_ms, round),
+                FOREIGN KEY (match_id, round) REFERENCES rounds(match_id, round)
                 PRIMARY KEY (match_id, match_time_ms)
                 );"""
 
@@ -194,18 +196,20 @@ agent_econ = """CREATE TABLE agent_econ (
                 PRIMARY KEY (agent_id)
                 );"""
 
+
+sql = MillSql(sqlite3.connect(env.database_path))
 ###Delete after table is working properly.
 def reset_tables():
     sql.enforce_relationship(False)
     drop = """DROP TABLE """
-    drop_list= ['matches', 'players', 'match_stats', 'rounds', 'round_stats', 'match_logs', 'damage_logs', 'bomb_logs']
+    drop_list= ['matches', 'players', 'match_stats', 'rounds', 'round_stats', 'match_logs', 'damage_logs', 'bomb_logs', 'kill_logs']
     for key in drop_list:
         pd.read_sql(drop+key+";", sql.dbc)
     return    
 
 def add_tables():
     sql.enforce_relationship(True)
-    table_list = [matches, players, match_stats, rounds, round_stats, match_logs, damage_logs, bomb_events]
+    table_list = [matches, players, match_stats, rounds, round_stats, match_logs, damage_logs, bomb_logs, kill_logs]
     
     for query in table_list:
         pd.read_sql(query, sql.dbc)

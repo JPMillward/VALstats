@@ -13,7 +13,7 @@ import personal as env
 class ValorantFetcher():
 
     def __init__(self, api_end_point, region, search_parameter):
-        print(region+api_end_point+search_parameter)
+        print(f"Requesting {search_parameter} from {api_end_point}")
         self.search_param = search_parameter
         self.end_point = api_end_point
         self.region = region
