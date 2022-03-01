@@ -31,6 +31,7 @@ class IHateJson():
         
         self.scan_fields(self.json)
         print(self.json_nav)
+        
     def scan_list(self, input_list, arg_key):
         if len(input_list) == 0: return print("Empty List: {input_list}")
         self.depth += 1

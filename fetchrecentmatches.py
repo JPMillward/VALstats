@@ -7,6 +7,7 @@ Py for making requests to the VALORANT API.
 Running every 15 minutes using the folowing daemons
 valapicall.service and valapicall.timer
 """
+
 import requests
 import personal as env
 import constants as c

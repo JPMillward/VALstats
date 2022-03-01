@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#pragma once
 """
 Created on Tue Dec  7 10:39:49 2021
 
@@ -32,14 +33,14 @@ class ValAutoHandler():
         #print("Do math to determine how many to add based on time elapse from last queue.")
         
         if time_range > 3600000:
-            self.add_entries(unique_entries, priority = True)
+            self.add_entries(unique_entries)
             return
         if overlap != 0:
             return print("Currently unable to validate data")
         
         entry_count = unique_entries.match_id.count()
-        time_min = int(time_range * .001 / 60)
-        max_sample_size = (time_min * self.limit)
+        time_minutes = int(time_range * .001 / 60)
+        max_sample_size = (time_minutes * self.limit)
         #print(max_sample_size)
         
         if entry_count < max_sample_size:
@@ -50,21 +51,15 @@ class ValAutoHandler():
         
             
     
-    def add_entries(self, unique_entries, priority = False):
+    def add_entries(self, unique_entries):
         if not if_exists(self.target):
             unique_entries.to_csv(self.target, index=False)
             return print("For some reason, no queue was found. Created new one.")
         
         queue_file = pd.read_csv(self.target)
-        
-        #Basically if it's an esport match
-        if priority == True:
-            
-            new_file = unique_entries.append(queue_file)
-            new_file.to_csv(self.target, index=False)
-        else:
-            new_file = queue_file.append(unique_entries)
-            new_file.to_csv(self.target, index=False)
+        overwrite_list = unique_entries.append(queue_file)
+        overwrite_list.to_csv(self.target, index=False)
+    
     
     def delete_entries(self):
         self.match_list = self.match_list[self.limit:]        

@@ -133,7 +133,6 @@ class MillSql():
         pd.read_sql(alter_table + rename_table, self.dbc)
         self.generate_query_whitelist()
         return        
-        
    
     def alter_table(self, table_name, change, column_name = None, data_type = None):
         #THIS FUNCTION IS A WORKAROUND TO LIMITED ALTER TABLE FUNCTIONALITY IN SQLITE

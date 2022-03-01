@@ -215,8 +215,11 @@ def add_tables():
         pd.read_sql(query, sql.dbc)
     return
 
-
-reset_tables()
-add_tables()
-
-
+"""
+DO NOT TOUCH THIS WITHOUT EXTREMELY GOOD CAUSE.
+Double Commented because it hard resets the given database.
+DONT TOUCH IT
+POR FAVOR NO TOUCH
+#reset_tables()
+#add_tables()
+"""

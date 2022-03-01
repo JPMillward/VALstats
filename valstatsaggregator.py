@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#pragma once
 """
 Created on Mon Dec  6 15:16:17 2021
 
@@ -7,15 +8,20 @@ Created on Mon Dec  6 15:16:17 2021
 
 
 """
+#Input and file handling
 from os.path import exists as if_exists
 import sys
 import pandas as pd
+
+#Subprocesses
 from autohandler import ValAutoHandler
 from valorantrequestfetcher import ValorantFetcher
 from valmatchconverter import ValMatchConverter
 import personal as env
 import sqlite3
 from millsql import MillSql
+
+
 
 class ValStatsAggregator():
     
@@ -96,27 +102,34 @@ class ValStatsAggregator():
             
             if self.check_entry('matches', 'match_id', search_parameter, self.region) == True:
                 dupe_count += 1
+                print(f"Duplicate: {search_parameter}, {self.region}")
             
             else:
                 self.parse_region()
                 json = ValorantFetcher(self.api_end_point, self.api_region, search_parameter).attempt_query()
                 #print(json.keys())
+                
                 if isinstance(json, dict):
                     
                     new_dict = ValMatchConverter(json, self.region).get_converted()
+                    
                     if isinstance(new_dict, dict):
                         self.handle_database_output(new_dict)
                         commit_count +=1
+                        print(f"Commit: {search_parameter}, {self.region}")
                     
-                    else: fail_count +=1
+                    else: 
+                        fail_count +=1
+                        print(f"Fail: {search_parameter}, {self.region}")
                 else:
                     fail_count += 1
+                    print(f"Fail: {search_parameter}, {self.region}")
         self.auto.delete_entries()
         return print(f"Matches Processed: {chunk_size}, Committed: {commit_count}, Duplicates: {dupe_count}, Errors: {fail_count}")
         
     def handle_database_output(self, dictionary):
         #Assuming valid entry at this point
-        #print(dictionary.keys())
+        print(dictionary.keys())
         for key,value in dictionary.items():
             
             if (key == 'players'):
@@ -143,10 +156,13 @@ class ValStatsAggregator():
         return
             
     def check_entry(self, table, column, value, region):
+        
+        
         if (region == 'na' or region == 'br' or region == 'latam'):
             select_region = f"""(region='na' OR region='br' OR region='latam')"""
         else:
             select_region = f"""(region='{region}')"""
+            
         select_exists = f"""SELECT EXISTS(SELECT 1 FROM {table} WHERE ("""
         select_column = f""" AND {column}='{value}'));"""
         exist_query = select_exists+select_region+select_column
@@ -162,7 +178,7 @@ class ValStatsAggregator():
     def request_handler(self):
         json = ValorantFetcher(self.api_end_point, self.api_region, self.query).attempt_query()
         if not isinstance(json, dict): return json
-        
+        print(json)
         data_frame_list = []
         for match in json['matchIds']:
             data_frame_list.append( {'query_time': json['currentTime'], 'match_id' : match, 'region':self.region} )
@@ -171,6 +187,7 @@ class ValStatsAggregator():
             self.handle_recent_output(data_frame)
         else: print(f"Query for {self.region} {self.query}, made at {json['currentTime']} returned no matches. Exiting.")
         return        
+
 
     def handle_recent_output(self, data_frame):
         if not if_exists(self.out_location):
@@ -186,7 +203,7 @@ class ValStatsAggregator():
             
         saved_list = pd.read_csv(self.out_location)
         print(saved_list.query_time.count())
-        print(data_frame)
+        #print(data_frame)
         if saved_list.iloc[-1]['query_time'] > data_frame.iloc[0]['query_time'] - time_range :
             merged_data = saved_list.merge(data_frame, how='outer')
             removed_duplicates = merged_data.drop_duplicates(['match_id'])
@@ -213,6 +230,7 @@ class ValStatsAggregator():
             data_frame.to_csv(self.out_location, mode='a', index=False)
             ValAutoHandler().calculate_sample_size(data_frame, time_range)         
             return
-        
-        
-ValStatsAggregator('auto', 'na')
+
+if len(sys.argv) > 2: 
+    ValStatsAggregator(sys.argv[1], sys.argv[2])
+else: print(f"Invalid Arguments. Expected 2, Got {len(sys.argv) - 1}")

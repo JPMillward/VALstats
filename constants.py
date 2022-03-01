@@ -7,8 +7,6 @@ Created on Sat Nov 20 18:26:31 2021
 
 Constants for human readability
 """
-import pandas as pd
-from millsql import sql
 
 player_rank = {
         0:'Unranked', 

@@ -1,20 +1,26 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#pragma once
 """
 Created on Sat Nov 20 18:26:31 2021
-
-@author: johnm
+@author: BrokenMaze
 
 Py for making requests to the VALORANT API
 Need API key with access
 
-SUN NOTES:
-    To Do:
-        -Check for unique matches and players in the table before appending.
-        -- key constraints doing their job and that's good. But also bad.
-        -Cruch a bunch of test cases and throw a ton of errors
-        - Make fetcher fetch all the things. <- That's important
-        -cry (again)
+Jan 2022
+    Notes:
+        - CRITICAL: Esports matches do not correctly propagate
+            -This is likely a result of a self.valid check hiding in FormatMatchStats()
+            -Likely tripping due to match observers -- non-issue in other contexts
+            UPDATE. bug in code was not issue. Issue was elsewhere in project
+            That was something that would've triggered an edge case though
+            
+            
+        - IMPORTANT: Match Score and Winner are not implemented.
+            -Reference JSON for path, implement
+            -Matches pushed to SQLite3 server are still missing this information
+            -Should be calculatable with information in db on a per match basis.
     
     
     economy tracking?    
@@ -60,6 +66,8 @@ class ValMatchConverter():
     def get_converted(self):
         if self.valid==False: return print("Error: Invalid Match File")
         
+        print(f"Self.valid = {self.valid}")
+        
         master_dictionary = {'matches' : self.matches,
                              'players': self.players,
                              'match_stats': self.match_stats,
@@ -95,7 +103,7 @@ class ValMatchConverter():
                         'season_id' : season_id,
                         'winner' : winner,
                         'final_score' : score
-            }
+                      }
         #print(matches_row)
         return
 
@@ -275,11 +283,10 @@ class ValMatchConverter():
                 
                 if listed_player['puuid'] == player_id:
                     event = 'kill'
-                else: event = 'assist'
-                
-           
-                
+                else: event = 'assist' 
+                               
                 self.format_match_logs(round_number=round_number, player=listed_player['puuid'], event_id=event, player_location=location, view=view, target_id=target_id, target_loc=target_loc, match_time=match_time, round_time=round_time)
+            
             self.round_start_time = round_start
         return
                 
@@ -420,4 +427,9 @@ class ValMatchConverter():
         for row in round_table:
             self.damage_logs.append(row)
         return
-    
+
+search_param = "712411fb-25f1-463e-ad13-025ab3fa3582"
+r = requests.get(env.region_esports + env.match_by_id + search_param, headers={env.api_header:env.match_key})
+
+#print(r.json())
+ValMatchConverter(r.json(), 'esports').get_converted()
