@@ -8,29 +8,22 @@ Created on Sat Nov 20 18:26:31 2021
 Py for making requests to the VALORANT API
 Need API key with access
 
-Jan 2022
+Feb 2022
     Notes:
         - CRITICAL: Esports matches do not correctly propagate
-            -This is likely a result of a self.valid check hiding in FormatMatchStats()
-            -Likely tripping due to match observers -- non-issue in other contexts
             UPDATE. bug in code was not issue. Issue was elsewhere in project
-            That was something that would've triggered an edge case though
-            
+            That was something that would've triggered an edge case though     
             
         - IMPORTANT: Match Score and Winner are not implemented.
             -Reference JSON for path, implement
             -Matches pushed to SQLite3 server are still missing this information
             -Should be calculatable with information in db on a per match basis.
     
-    
-    economy tracking?    
-    other questions?
-    eventually refactor this monstrosity
+    Refactoring Everything Currently.
 """
-import requests
-import pandas as pd
+import logging
+from valorantrequestfetcher import ValorantFetcher
 import personal as env
-
 
 class ValMatchConverter():
     def __init__(self, json_response, region):
@@ -39,10 +32,9 @@ class ValMatchConverter():
         
         self.valid = False
         if isinstance(self.json['roundResults'], list):
-            self.valid=True
-        self.match = self.json['matchInfo']['matchId']
-        #Now assume match integrity based on the fact it got passed through successfully.
-        
+            self.valid = True
+            
+        self.match = self.json['matchInfo']['matchId'] 
         self.matches = {}
         self.players = []
         self.match_stats = []
@@ -68,7 +60,8 @@ class ValMatchConverter():
         
         print(f"Self.valid = {self.valid}")
         
-        master_dictionary = {'matches' : self.matches,
+        master_dictionary = {
+                             'matches' : self.matches,
                              'players': self.players,
                              'match_stats': self.match_stats,
                              'rounds' : self.rounds,
@@ -92,7 +85,9 @@ class ValMatchConverter():
         season_id = match_info['seasonId']
         winner = None
         score = None
-        self.matches= { 'match_id' : self.match,
+        
+        self.matches = {
+                        'match_id' : self.match,
                         'region' : self.region,
                         'map_id' : map_id,
                         'game_length_ms' : game_length,
@@ -103,7 +98,7 @@ class ValMatchConverter():
                         'season_id' : season_id,
                         'winner' : winner,
                         'final_score' : score
-                      }
+                       }
         #print(matches_row)
         return
 
@@ -141,37 +136,40 @@ class ValMatchConverter():
             stats = player['stats']
             if stats == None:
                 print(f"Player: {player['gameName']}, Does not have stats. Omitting.")
-            else:
-                character = player['characterId']
-                comp_tier = player['competitiveTier']
-                player_card = player['playerCard'].lower()
-                player_title = player['playerTitle'].lower()
-                rounds_played = stats['roundsPlayed']
-                play_time = stats['playtimeMillis']
-                
-                score = stats['score']
-                kills = stats['kills']
-                deaths = stats['deaths']
-                assists = stats['assists']
-                
-                ability = stats['abilityCasts']
-                if ability != None:
-                    grenade_casts = ability['grenadeCasts']
-                    ability_casts = ability['ability1Casts']
-                    signature_casts = ability['ability2Casts']
-                    ultimate_casts = ability['ultimateCasts']
-                    
-                else:
-                    print(f"Error: {player['gameName']} has no ability use response. \nPlease verify match integrity.")
-                    print(f"No logging for this. Build it if you see this message too many times.")
-                    self.valid = False
-                   
-                    return
-                
+                continue
             
-                match_stats_row = { 'match_id' : self.match,
-                               'player_id' : player_id,
-                               'team_id' : team, 
+      
+            character = player['characterId']
+            comp_tier = player['competitiveTier']
+            player_card = player['playerCard'].lower()
+            player_title = player['playerTitle'].lower()
+            rounds_played = stats['roundsPlayed']
+            play_time = stats['playtimeMillis']
+            
+            score = stats['score']
+            kills = stats['kills']
+            deaths = stats['deaths']
+            assists = stats['assists']
+            
+            ability = stats['abilityCasts']
+            if ability != None:
+                grenade_casts = ability['grenadeCasts']
+                ability_casts = ability['ability1Casts']
+                signature_casts = ability['ability2Casts']
+                ultimate_casts = ability['ultimateCasts']
+                
+            else:
+                print(f"Error: {player['gameName']} has no ability use response. \nPlease verify match integrity.")
+                print(f"No logging for this. Build it if you see this message too many times.")
+                self.valid = False
+               
+                return
+            
+        
+            match_stats_row = { 
+                                'match_id' : self.match,
+                                'player_id' : player_id,
+                                'team_id' : team, 
                                 'party_id' : party,
                                 'character_id' : character,
                                 'competitive_tier' : comp_tier,
@@ -186,14 +184,16 @@ class ValMatchConverter():
                                 'grenade_casts' : grenade_casts,
                                 'ability_casts' : ability_casts,
                                 'signature_casts' : signature_casts,
-                                'ultimate_casts': ultimate_casts}
-                self.match_stats.append(match_stats_row)
+                                'ultimate_casts': ultimate_casts
+                               }
+            
+            self.match_stats.append(match_stats_row)
         return
             
     def format_rounds(self):
         round_results = self.json['roundResults']
-        for x in range(len(round_results)):
-            rounds = round_results[x]
+        
+        for rounds in round_results:
             round_num = rounds['roundNum']
             round_result = rounds['roundResult']   
             round_ceremony = rounds['roundCeremony']
@@ -203,33 +203,37 @@ class ValMatchConverter():
                 
             self.format_round_stats(rounds)
             
-            rounds_row = { 'match_id' : self.match,
+            rounds_row = { 
+                           'match_id' : self.match,
                            'round' : round_num,
                            'round_start_ms' : self.round_start_time,
                            'round_result' : round_result,
                            'round_ceremony' : round_ceremony,
                            'winning_team' : winner,
                            'result_code' : round_code,
-                            }
-            self.rounds.append(rounds_row)
+                          }
             
+            self.rounds.append(rounds_row)
             
             if rounds['bombPlanter'] != None:
                 self.format_bomb_logs(rounds,'plant')
+                
             if rounds['bombDefuser'] != None:
                 self.format_bomb_logs(rounds, 'defuse')
+                
             if rounds['roundResult'] == 'Bomb detonated':
                 self.format_bomb_logs(rounds, 'detonate')
         #print(pd.DataFrame(self.rounds))
     
+    
     def format_round_stats(self, round_dict):
         round_num = round_dict['roundNum']
-        for y in range(len(round_dict['playerStats'])):
-            player = round_dict['playerStats'][y]
+        for player in round_dict['playerStats']:
             player_id = player['puuid']
             kill_count = len(player['kills'])
             score = player['score']
             econ = player['economy']
+            
             loadout_value = econ['loadoutValue']
             weapon = econ['weapon']
             armor = econ['armor']
@@ -247,7 +251,9 @@ class ValMatchConverter():
                                 'armor' : armor,
                                 'spent' : spent,
                                 'remaining' : remaining }
+            
             self.round_stats.append(round_stats_row)
+            
             if len(player['damage']) > 0:
                 self.format_damage_logs(round_num, player_id, player)
             
@@ -258,26 +264,25 @@ class ValMatchConverter():
     
     def handle_kill_logging(self, kill_list, round_number):
         round_start = 0
-        for x in range(len(kill_list)):
-            kill_num = kill_list[x]
-            match_time = kill_num['timeSinceGameStartMillis']
-            round_time = kill_num['timeSinceRoundStartMillis']
+        for kill in kill_list:
+            match_time = kill['timeSinceGameStartMillis']
+            round_time = kill['timeSinceRoundStartMillis']
             
             #Verify Log Integrity, Find round start
             if round_start == 0: round_start = match_time - round_time
             elif round_start != match_time - round_time:
                 print(f"ERROR: {round_start} is not {match_time - round_time} = {match_time} - {round_time}")
             
-            target_id = kill_num['victim']
-            target_loc = str(kill_num['victimLocation']['x']) + ',' + str(kill_num['victimLocation']['y'])
-            kill_info = kill_num['finishingDamage']
+            target_id = kill['victim']
+            target_loc = str(kill['victimLocation']['x']) + ',' + str(kill['victimLocation']['y'])
+            kill_info = kill['finishingDamage']
                         
-            player_id = kill_num['killer']
+            player_id = kill['killer']
             self.format_kill_logs(round_number = round_number, player_id=player_id, target_id=target_id, kill_info = kill_info, match_time=match_time, round_time=round_time)
             
             #Log player location and match time with event.
-            for player in range(len(kill_num['playerLocations'])):
-                listed_player = kill_num['playerLocations'][player]
+            for player in range(len(kill['playerLocations'])):
+                listed_player = kill['playerLocations'][player]
                 view = listed_player['viewRadians']
                 location = str(listed_player['location']['x']) + ',' + str(listed_player['location']['x'])
                 
@@ -291,7 +296,8 @@ class ValMatchConverter():
         return
                 
     def format_kill_logs(self, round_number, player_id, target_id, kill_info, match_time, round_time):
-        kill_logs_row = { 'match_id': self.match,
+        kill_logs_row = { 
+                         'match_id': self.match,
                          'round' : round_number,
                          'match_time_ms': match_time,
                          'round_time_ms': round_time, 
@@ -299,23 +305,27 @@ class ValMatchConverter():
                          'target_id': target_id,
                          'damage_type': kill_info['damageType'],
                          'damage_item': kill_info['damageItem'],
-                         'alt_fire': kill_info['isSecondaryFireMode']}
+                         'alt_fire': kill_info['isSecondaryFireMode']
+                        }
         self.kill_logs.append(kill_logs_row)
         return         
                         
         
     def format_match_logs(self, round_number, player, event_id, player_location, view, target_id, target_loc, match_time, round_time):
 
-        match_logs_row = { 'match_id' : self.match,
-                           'player_id' : player,
-                           'match_time_ms' : match_time,
-                           'round' : round_number,
-                           'round_time_ms' : round_time,
-                           'event' : event_id,
-                           'player_location' : player_location,
-                           'view' : view,
-                           'target_id' : target_id,
-                           'target_location' : target_loc}
+        match_logs_row = { 
+                            'match_id' : self.match,
+                            'player_id' : player,
+                            'match_time_ms' : match_time,
+                            'round' : round_number,
+                            'round_time_ms' : round_time,
+                            'event' : event_id,
+                            'player_location' : player_location,
+                            'view' : view,
+                            'target_id' : target_id,
+                            'target_location' : target_loc
+                         }
+        
         self.match_logs.append(match_logs_row)
         return
                            
@@ -334,13 +344,16 @@ class ValMatchConverter():
         
         match_time = self.round_start_time + round_time
         
-        bomb_logs_row = {'match_id' : match_id,
+        bomb_logs_row = {
+                         'match_id' : match_id,
                          'match_time_ms' : match_time,
                          'round' : round_number['roundNum'],
                          'round_time_ms' : round_time,
                          'event' : bomb_event,
                          'location' : bomb_location,
-                         'bomb_site' : bomb_site}
+                         'bomb_site' : bomb_site
+                         }
+        
         self.bomb_logs.append(bomb_logs_row)
         self.handle_bomb_event(round_number, bomb_event, round_time)
         return
@@ -357,11 +370,10 @@ class ValMatchConverter():
         
         if (bomb_event == 'plant' or bomb_event == 'defuse'):
             
-            for player in range(len(round_info[bomb_event+'PlayerLocations'])):
-                listed = round_info[bomb_event+'PlayerLocations'][player]
-                player_id = listed['puuid']
-                player_location = str(listed['location']['x']) + ',' + str(listed['location']['y'])
-                view = listed['viewRadians']           
+            for player in round_info[bomb_event+'PlayerLocations']:
+                player_id = player['puuid']
+                player_location = str(player['location']['x']) + ',' + str(player['location']['y'])
+                view = player['viewRadians']           
                 bomb_location = str(round_info[bomb_event+'Location']['x']) + ',' + str(round_info[bomb_event+'Location']['y'])
                 
                 if player_id == round_info[interacting_player]:
@@ -376,9 +388,10 @@ class ValMatchConverter():
                         
     def format_damage_logs(self, round_number, player, player_info):
         round_table = []
-        for item in range(len(player_info['damage'])):
-            damage_summary = player_info['damage'][item]
-            damage_logs_row = {'match_id' : self.match,
+        
+        for damage_summary in player_info['damage']:       
+            damage_logs_row = {
+                               'match_id' : self.match,
                                'round_id' : round_number,
                                'player_id' : player,
                                'target_id' : damage_summary['receiver'],
@@ -386,8 +399,7 @@ class ValMatchConverter():
                                'head_hits' : damage_summary['headshots'],
                                'body_hits' : damage_summary['bodyshots'],
                                'leg_hits' : damage_summary['legshots'],
-                               }
-            #print(damage_logs_row)
+                              }
             round_table.append(damage_logs_row)
         self.validate_damage_logs(round_table)
         return
@@ -428,8 +440,14 @@ class ValMatchConverter():
             self.damage_logs.append(row)
         return
 
-search_param = "712411fb-25f1-463e-ad13-025ab3fa3582"
-r = requests.get(env.region_esports + env.match_by_id + search_param, headers={env.api_header:env.match_key})
-
-#print(r.json())
-ValMatchConverter(r.json(), 'esports').get_converted()
+def main():
+    log.setLevel(1)
+    
+    json = ValorantFetcher()
+    
+    
+log = logging.getLogger(__name__)
+if __name__ == '__main__':
+    main()
+else:
+    log.setLevel(30)

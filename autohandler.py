@@ -6,16 +6,17 @@ Created on Tue Dec  7 10:39:49 2021
 
 @author: johnm
 """
+import sys
+import logging
 from os.path import exists as if_exists
 import personal as env
 import pandas as pd
 
-class ValAutoHandler():
+class ValAutoHandler:
     
-    def __init__(self, target = env.aggregation_queue):
-        self.limit = env.rate_limit
+    def __init__(self, target, rate_limit):
+        self.rate_limit = rate_limit
         self.target = target
-        self.get_matches()
         return
     
     def get_matches(self):
@@ -46,6 +47,7 @@ class ValAutoHandler():
         if entry_count < max_sample_size:
             self.add_entries(unique_entries)
             return
+        
         self.add_entries(unique_entries[-max_sample_size:])
         return 
         
@@ -65,3 +67,24 @@ class ValAutoHandler():
         self.match_list = self.match_list[self.limit:]        
         self.match_list.to_csv(self.target, index=False)
         return
+
+def main():
+    log.debug('Main Called')
+
+log = logging.getLogger(__name__)
+if log.hasHandlers(): 
+    log.debug('Logger had handlers, clearing them')
+    log.handlers.clear()
+
+formatting = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+handler = logging.StreamHandler(sys.stdout)
+handler.setFormatter( formatting )
+handler.setLevel('DEBUG')
+log.warning( handler.level )
+log.addHandler( handler )
+log.setLevel('DEBUG')
+log.warning(f'{log.getEffectiveLevel()}')
+log.debug('DEBUG MESSAGE')
+
+if __name__ == '__main__':
+    main()

@@ -1,0 +1,66 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Mar  1 19:43:51 2022
+
+Class handling pushing formatted data to the database
+@author: johnm
+"""
+import pandas as pd
+import logging
+
+
+class ValDBHandler:
+    
+         
+    def handle_database_output(self, dictionary):
+        #Assuming valid entry at this point
+        print(dictionary.keys())
+        for key,value in dictionary.items():
+            
+            if (key == 'players'):
+                for player_entry in value:
+                    #print(self.check_entry(key, 'player_id', player_entry['player_id'], self.region))
+                    if (self.check_entry(key, 'player_id', player_entry['player_id'], self.region)):
+                        print(f"{player_entry['player_id']} is already in database. Omitting.")
+                    else:
+                        
+                        x = pd.DataFrame([player_entry])
+                        x.to_sql(key, self.out_location, if_exists='append', index=False)
+                        
+            elif isinstance(value, dict):
+                data_frame = pd.DataFrame([value])
+                data_frame.to_sql(key, self.out_location, if_exists='append', index=False)
+
+            elif isinstance(value, list):
+                data_frame = pd.DataFrame(value)
+                data_frame.to_sql(key, self.out_location, if_exists='append', index=False)
+
+            else:
+                print('Invalid entry')
+                        
+        return
+            
+    def check_entry(self, table, column, value, region):
+        if (region == 'na' or region == 'br' or region == 'latam'):
+            select_region = f"""(region='na' OR region='br' OR region='latam')"""
+        else:
+            select_region = f"""(region='{region}')"""
+            
+        select_exists = f"""SELECT EXISTS(SELECT 1 FROM {table} WHERE ("""
+        select_column = f""" AND {column}='{value}'));"""
+        exist_query = select_exists+select_region+select_column
+        #print(select_exists + select_region + select_column)
+        data_frame = pd.read_sql(exist_query, self.out_location, index_col=None)
+        column = data_frame.columns[0]
+        if data_frame[column][0] == 0: return False
+        if data_frame[column][0] == 1: return True
+        return 
+    
+def main():
+    logger = LoggerHelper().log_program(__name__)
+    logger.warning('Main Called')
+    print( logger.getEffectiveLevel() )
+    
+if __name__ == '__main__':
+    main()
